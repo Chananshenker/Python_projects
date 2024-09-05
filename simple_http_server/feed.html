@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Feed Page</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .name-column {
+            width: 20%; /* Adjust the width as needed */
+        }
+        .timestamp-column {
+            width: 15%; /* Adjust the width as needed */
+        }
+    </style>
+</head>
+<body style="background-color: lightgray;">
+    <h1 style="text-align: center; font-family: Verdana, Geneva, Tahoma, sans-serif;font-size:300%;color: darkgreen;">Recent Thoughts</h1>
+    <table>
+        <thead>
+            <tr>
+                <th class="name-column">Name</th>
+                <th>Thoughts</th>
+                <th class="timestamp-column">Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{content}}
+        </tbody>
+    </table>
+</body>
+</html>
