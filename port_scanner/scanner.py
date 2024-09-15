@@ -1,5 +1,5 @@
 '''
-script by: Chanan Shnker
+script by: Chanan Shenker
 This is a little project ive been working on. 
 This script is a port scanner that checks what ports are open and then attempt to do banner grabbing/ service detection.
 Obviously Nmap exists and does this job much faster and with more features, but this is part of my python learning journey.
