@@ -1,120 +1,116 @@
 '''
 script by: Chanan Shnker
-This is a little project I've been working on. 
-This script is a port scanner that checks what ports are open and then attempts to do banner grabbing/service detection.
-Obviously Nmap exists and does this job much faster and with more features, but this is part of my Python learning journey.
+This is a port scanner that checks for open ports and attempts banner grabbing/service detection.
 '''
 
 import sys
-import argparse  # For command-line argument parsing
-import socket    # For creating network connections (sockets)
-import ipaddress # For IP address validation
+import argparse
+import socket
+import ipaddress
 
-# Set up the argument parser
+# Set up argument parser
 parser = argparse.ArgumentParser()
 
-# Define the available command-line arguments
-parser.add_argument("-t", "--target", help="target to scan")
-parser.add_argument("-b", "--banner", help="attempt to retrieve a banner from the open port", action="store_true")
-parser.add_argument("-v", "--verbose", help="display results as they are discovered", action="store_true")
-parser.add_argument("-o", "--output", help="file to save the output to")
+parser.add_argument("-t", "--target", help = "target to scan")
+parser.add_argument("-b", "--banner", help = "attempt to retrieve a banner", action="store_true")
+parser.add_argument("-v", "--verbose", help = "display results as discovered", action="store_true")
+parser.add_argument("-o", "--output", help = "file to save the output to")
+parser.add_argument("-e", "--extensive", help = "scan all 65535 ports (default 1-9999)", action="store_true")
 
-# Parse the arguments
 args = parser.parse_args()
 
-# Assign the target IP from the arguments
 IP = args.target
-
-# Initialize lists to store open ports and output data
 ports = []
 output = []
 
-# Function to validate if the IP address is valid
+# Validate the target IP address
 def validate_ip(ip):
     try:
-        # Use ipaddress library to check if the IP address is valid
         ipaddress.ip_address(ip) 
         return True
     except:
         return False
 
-# Function to scan a single port
+# Check if the port is open
 def port_scanning(port):
-    # Create a new TCP socket (IPv4)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Set a timeout of 3 seconds for the connection attempt
-    socket.setdefaulttimeout(3)
+    socket.setdefaulttimeout(3)  
     try:
-        # Try to connect to the target IP and port
         sock.connect((IP, port))
-        return True  # Return True if the connection is successful (port is open)
+        return True  
     except:
-        return False  # Return False if the connection fails (port is closed)
+        return False  
     finally:
-        # Close the socket after the attempt
-        sock.close()
+        sock.close()  
 
-# Function to attempt banner grabbing from an open port
+# Identify service by port number
+def find_service_by_port(port):
+    try:
+        service = socket.getservbyport(port)
+        return service
+    except OSError:
+        return "Unknown service"
+
+# Attempt to grab a banner from an open port
 def banner_grabbing(open_port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    socket.setdefaulttimeout(3)  # Set a 3-second timeout
+    socket.setdefaulttimeout(2) 
     try:
-        # Try to connect to the target IP and open port
         sock.connect((IP, open_port))
-        # Try to receive 1024 bytes of data (the banner)
         banner = sock.recv(1024).decode('utf-8').strip()
         sock.close()
         if banner:
-            return banner  # Return the banner if data was received
+            return banner  
         else:
-            return 'No banner received'  # No banner found
+            return 'No banner received'
     except:
-        return 'Error! Could not receive banner'  # Return an error if unable to get the banner
+        return 'Error! Could not receive banner'
     finally:
-        sock.close()  # Close the socket
+        sock.close() 
 
-# If no arguments are provided, display the help message
+# Main scanning loop
 if len(sys.argv) == 1:
     parser.print_help()
     sys.exit()
 
-# If the target IP is valid, start scanning
+port_range = 65535 if args.extensive else 9999
+
 if validate_ip(IP):
-    print(f'Starting scan on {IP}:')
-    # Scan all 65535 ports
-    for port in range(65535):
-        if port_scanning(port):  # If the port is open
-            port_output = f'[OPEN] Port {port} found open'  # Format the output for the open port
-            ports.append(port)  # Add the open port to the list
-            if args.verbose:  # If verbose mode is enabled, print the result immediately
+    print(f'[SCANNER] Starting scan on {IP}:')
+    for port in range(port_range):
+        if port_scanning(port):
+            service = find_service_by_port(port)
+            port_output = f'[OPEN] Port {port} ({service}) found open'
+            ports.append(port) 
+            if args.verbose and not args.banner:
                 print(port_output)
-            output.append(port_output)  # Store the result for later output
+            if not args.banner:
+                output.append(port_output)
 else:
-    # Print error if the IP address is invalid and exit
     print(f'The IP address {IP} is not valid!')
     sys.exit()
 
-# If the banner grabbing option is enabled and there are open ports
+# Perform banner grabbing if specified
 if args.banner:
     if len(ports) == 0:
-        print("No ports seem to be found open on the host.")  # No open ports found
+        print("No ports seem to be found open on the host.")
     else:
-        print('Attempting to detect service versions:')
+        print('[SCANNER] Attempting to detect service versions:')
         for open_port in ports:
-            # For each open port, attempt to grab the banner
             banner = banner_grabbing(open_port)
-            banner_output = f'[BANNER] port {open_port}: {banner}'  # Format the banner output
-            if args.verbose:  # Print the banner if verbose mode is enabled
+            service = find_service_by_port(open_port)
+            banner_output = f'[OPEN] port {open_port} open ({service}): {banner}'
+            if args.verbose:
                 print(banner_output)
-            output.append(banner_output)  # Store the banner result for later output
+            output.append(banner_output)
 
-# If verbose mode is not enabled, print all results at the end
-if args.verbose == False:
+# Print output if not verbose
+if not args.verbose:
     for line in output:
         print(line)
 
-# If the output option is set, write all results to the specified file
+# Save output to file if specified
 if args.output:
     with open(args.output, "a") as f:
         for line in output:
-            f.write(line + '\n')  # Write each line of output to the file
+            f.write(line + '\n')
